@@ -14,21 +14,21 @@
   "Parse a single dial direction e.g. L68 into structured data e.g. {:direction 'L', :amount 68}"
   [input]
   (let [[_ _ direction amount]
-          (re-matches #"((?<direction>[L|R])(?<amount>\d+))" input)]
+        (re-matches #"((?<direction>[L|R])(?<amount>\d+))" input)]
     {:direction direction, :amount (Integer/parseInt amount)}))
 
 (defn day-1-part-1
   [turn-inputs]
   (let [amount-with-direction (map
-                                (fn [input]
-                                  (let [{direction :direction, amount :amount}
-                                          (parse-dial-direction input)]
-                                    (if (= "L" direction) (- amount) amount)))
-                                turn-inputs)
+                               (fn [input]
+                                 (let [{direction :direction, amount :amount}
+                                       (parse-dial-direction input)]
+                                   (if (= "L" direction) (- amount) amount)))
+                               turn-inputs)
         dial-pointing-at (map-indexed (fn [i _]
                                         (reduce +
-                                          dial-start
-                                          (take (inc i) amount-with-direction)))
+                                                dial-start
+                                                (take (inc i) amount-with-direction)))
                                       amount-with-direction)]
     (count (filter #(= 0 (mod % 100)) dial-pointing-at))))
 
