@@ -28,15 +28,40 @@
                    (mod v 100)))
                dial-directions))
 
-(defn day-1-part-1
+(defn rotate-dial
+  "Given a dial at dial-location, rotate the dial for the number of directional-clicks, and return the location at the end of the rotation"
+  [dial-location directional-clicks]
+  (-> dial-location
+      (+ directional-clicks)
+      (mod 100)))
+
+(defn day-1-part-1-recursion
+  [dial-start turn-inputs]
+  (loop [[parsed-direction & parsed-directions] (map parse-dial-direction
+                                                  turn-inputs)
+         zero-counts 0
+         end-locations [dial-start]]
+    (let [dial-location (last end-locations)]
+      (if parsed-direction
+        (let [end-location (rotate-dial dial-location parsed-direction)
+              zero-count-increment-fn #(if (= 0 %) 1 0)]
+          (recur parsed-directions (+ zero-counts (zero-count-increment-fn end-location))(conj end-locations end-location)))
+        zero-counts))))
+
+(defn day-1-part-1-sequences
   [turn-inputs]
   (->> turn-inputs
        (map parse-dial-direction)
        (calculate-end-location dial-start)
        (filter #(= 0 %))
-       (count)))
+       (count)
+  ))
 
 (defn day-1-part-2 [turn-inputs])
 
 (with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
-  (day-1-part-1 (line-seq rdr)))
+  (let [input-lines (line-seq rdr)] (time (day-1-part-1-recursion dial-start input-lines))))
+
+(with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
+  (let [input-lines (line-seq rdr)] (time (day-1-part-1-sequences input-lines))))
+
