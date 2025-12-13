@@ -11,26 +11,32 @@
 (def dial-start 50)
 
 (defn parse-dial-direction
-  "Parse a single dial direction e.g. L68 into structured data e.g. {:direction 'L', :amount 68}"
+  "Parse a single dial direction e.g. L68 into directional clicks e.g. -68"
   [input]
-  (let [[_ _ direction amount]
-        (re-matches #"((?<direction>[L|R])(?<amount>\d+))" input)]
-    {:direction direction, :amount (Integer/parseInt amount)}))
+  (let [[_ _ direction clicks]
+          (re-matches #"((?<direction>[L|R])(?<amount>\d+))" input)
+        amount (Integer/parseInt clicks)]
+    (if (= "L" direction) (- amount) amount)))
+
+(defn calculate-end-location
+  [starting-at dial-directions]
+  (map-indexed (fn [index _]
+                 (as-> index v
+                   (inc v)
+                   (take v dial-directions)
+                   (reduce + starting-at v)
+                   (mod v 100)))
+               dial-directions))
 
 (defn day-1-part-1
   [turn-inputs]
-  (let [amount-with-direction (map
-                               (fn [input]
-                                 (let [{direction :direction, amount :amount}
-                                       (parse-dial-direction input)]
-                                   (if (= "L" direction) (- amount) amount)))
-                               turn-inputs)
-        dial-pointing-at (map-indexed (fn [i _]
-                                        (reduce +
-                                                dial-start
-                                                (take (inc i) amount-with-direction)))
-                                      amount-with-direction)]
-    (count (filter #(= 0 (mod % 100)) dial-pointing-at))))
+  (->> turn-inputs
+       (map parse-dial-direction)
+       (calculate-end-location dial-start)
+       (filter #(= 0 %))
+       (count)))
+
+(defn day-1-part-2 [turn-inputs])
 
 (with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
   (day-1-part-1 (line-seq rdr)))
