@@ -3,7 +3,23 @@
 (comment
   (remove-ns 'aoc))
 
-(defrecord DialCommand [start direction clicks])
+(defprotocol DialCommandResults
+  "A list of queries about the result of executing the dial command."
+  (would-cross-zero? [_]
+   "Would the command result in the dial crossing zero?")
+  (end-location [_]
+   "The end location that the dial would point at after executing the command.")
+  (is-going-left? [_]
+   "Is the command turning the dial to the left?"))
+
+(defrecord DialCommand [start direction clicks]
+  DialCommandResults
+    (would-cross-zero? [_]
+      (if (is-going-left? _) (>= clicks start) (>= clicks (- 100 start))))
+    (end-location [_]
+      (-> (if (is-going-left? _) (- start clicks) (+ start clicks))
+          (mod 100)))
+    (is-going-left? [_] (= direction :L)))
 
 (defn- parse-directional-clicks
   "Parse a single dial direction e.g. L68 into directional clicks e.g. {:direction :l, :clicks 68}"
@@ -13,31 +29,18 @@
         amount (Integer/parseInt clicks)]
     {:direction (keyword direction), :clicks amount}))
 
-(defn- is-left? [direction] (= direction :L))
-
-(defn- did-cross-zero?
-  "Given a dial at start, return if the dial had crossed zero based on the direction and clicks."
-  [{start :start, direction :direction, clicks :clicks}]
-  (if (is-left? direction) (>= clicks start) (>= clicks (- 100 start))))
-
 (defn- calculate-zero-count-part2
   "Given a dial at start, return the number of times the dial passed zero based on the revolutions, direction, and clicks."
   [revolutions {start :start, :as command}]
   (if (zero? start)
     revolutions
-    (let [did-cross-zero (did-cross-zero? command)]
+    (let [did-cross-zero (would-cross-zero? command)]
       (if did-cross-zero (inc revolutions) revolutions))))
-
-(defn- calculate-end
-  "Given a dial at start, calculate where the dial ends based on the direction and the number of clicks"
-  [{start :start, direction :direction, clicks :clicks}]
-  (-> (if (is-left? direction) (- start clicks) (+ start clicks))
-      (mod 100)))
 
 (defn- calculate-zero-count-part1
   "Given a dial at start, return 1 if the dials ends at 0 based on the direction and clicks. 0 otherwise"
   [_ command]
-  (as-> (calculate-end command) end (if (zero? end) 1 0)))
+  (as-> (end-location command) end (if (zero? end) 1 0)))
 
 (defn- calculate-zero-counts-and-dial-end-location
   "Process a dial input based on the start position of the dial and return how many times the dial passed zero and where the dial ended up"
@@ -45,7 +48,7 @@
   (let [complete-revolutions (quot clicks 100)
         clicks-remain (rem clicks 100)
         command (->DialCommand start direction clicks-remain)
-        end (calculate-end command)]
+        end (end-location command)]
     {:zero-counts (calculate-zero-count complete-revolutions command),
      :dial-end end}))
 
