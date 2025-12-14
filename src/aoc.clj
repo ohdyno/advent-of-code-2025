@@ -18,38 +18,48 @@
 
 (defn- is-left? [direction] (= direction :l))
 
+(defn- calculate-zero-count-part2
+  [start end revolutions direction]
+  (if (is-left? direction)
+    (if (or (zero? start) (> end 0)) revolutions (inc revolutions))
+    (if (or (zero? start) (<= end 99)) revolutions (inc revolutions))))
+
+(defn- calculate-zero-count-part1 [_ end _ _] (if (zero? (mod end 100)) 1 0))
+
+(defn- calculate-end
+  [start direction clicks]
+  (if (is-left? direction) (- start clicks) (+ start clicks)))
+
 (defn process-input
   "Process a dial input based on the start position of the dial and return how many times the dial passed zero and where the dial ended up"
-  [start {direction :direction, clicks :clicks}]
+  [start calculate-zero-count {direction :direction, clicks :clicks}]
   (let [complete-revolutions (quot clicks 100)
-        clicks-remain (rem clicks 100)]
-    (if (is-left? direction)
-      (let [end (- start clicks-remain)]
-        {:zero-counts (if (or (zero? start) (> end 0))
-                        complete-revolutions
-                        (inc complete-revolutions)),
-         :dial-end (mod end 100)})
-      (let [end (+ start clicks-remain)]
-        {:zero-counts (if (or (zero? start) (<= end 99))
-                        complete-revolutions
-                        (inc complete-revolutions)),
-         :dial-end (mod end 100)}))))
+        clicks-remain (rem clicks 100)
+        end (calculate-end start direction clicks-remain)]
+    {:zero-counts
+       (calculate-zero-count start end complete-revolutions direction),
+     :dial-end (mod end 100)}))
 
-(process-input 0 {:direction :l, :clicks 1250})
-
-(defn foo
-  [input-lines]
+(defn process-day-1
+  [calculate-zero-count input-lines]
   (->> input-lines
        (map parse-dial-input)
-       (reduce (fn [{zero-counts :zero-counts, dial-end :dial-end} direction]
-                 (let [{n :zero-counts, de :dial-end} (process-input dial-end
-                                                                     direction)]
-                   {:zero-counts (+ n zero-counts), :dial-end de}))
+       (reduce (fn [acc direction]
+                 (let [{additional-zero-counts :zero-counts, dial-end :dial-end}
+                         (process-input (:dial-end acc)
+                                        calculate-zero-count
+                                        direction)]
+                   (-> acc
+                       (update :zero-counts + additional-zero-counts)
+                       (assoc :dial-end dial-end))))
          {:zero-counts 0, :dial-end dial-start})))
 
 (with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
-  (let [input-lines (line-seq rdr)] (time (foo input-lines))))
-
+  (let [input-lines (line-seq rdr)
+        part-1 (time (process-day-1 calculate-zero-count-part1 input-lines))
+        part-2 (time (process-day-1 calculate-zero-count-part2 input-lines))]
+    (assert (= 5820 (:zero-counts part-2)))
+    (assert (= 1007 (:zero-counts part-1)))))
 
 (defn parse-directional-clicks
   "Parse a single dial direction e.g. L68 into directional clicks e.g. -68"
@@ -109,18 +119,13 @@
        (map #(counter-increment-fn nil % nil))
        (reduce +)))
 
-(defn day-1-part-2 [turn-inputs])
-
 (with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
   (let [input-lines (line-seq rdr)
-        part-1 (time (day-1-part-1-recursion dial-start
-                                             input-lines
-                                             day-1-part-1-counter-increment-fn))
-        part-2 (time (day-1-part-1-recursion
+        part-1 (time (day-1-part-1-recursion
                        dial-start
                        input-lines
-                       day-1-part-2-counter-increment-fn))]
-    {:part-1 part-1, :part-2 part-2}))
+                       day-1-part-1-counter-increment-fn))]
+    {:part-1 part-1}))
 
 (with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
   (let [input-lines (line-seq rdr)]
