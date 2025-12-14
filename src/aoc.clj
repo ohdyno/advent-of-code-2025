@@ -71,4 +71,4 @@
         part-1 (time (process-day-1 50 calculate-zero-count-part1 input-lines))
         part-2 (time (process-day-1 50 calculate-zero-count-part2 input-lines))]
     (assert (= 5820 (:zero-counts part-2)) part-2)
-    (assert (= 1007 (:zero-counts part-1)))))
+    (assert (= 1007 (:zero-counts part-1)) part-1)))
