@@ -1,7 +1,7 @@
-(ns aoc
+(ns aoc-day-1
   (:require [clojure.java.io :as io]))
 (comment
-  (remove-ns 'aoc))
+  (remove-ns 'aoc-day-1))
 
 (defprotocol DialCommandResults
   "A list of queries about the result of executing the dial command."
@@ -52,7 +52,7 @@
     {:zero-counts (calculate-zero-count complete-revolutions command),
      :dial-end end}))
 
-(defn process-day-1
+(defn process
   [dial-start calculate-zero-count input-lines]
   (->> input-lines
        (map parse-directional-clicks)
@@ -68,7 +68,7 @@
 
 (with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
   (let [input-lines (line-seq rdr)
-        part-1 (time (process-day-1 50 calculate-zero-count-part1 input-lines))
-        part-2 (time (process-day-1 50 calculate-zero-count-part2 input-lines))]
+        part-1 (time (process 50 calculate-zero-count-part1 input-lines))
+        part-2 (time (process 50 calculate-zero-count-part2 input-lines))]
     (assert (= 5820 (:zero-counts part-2)) part-2)
     (assert (= 1007 (:zero-counts part-1)) part-1)))
