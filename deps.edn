@@ -1,1 +1,12 @@
-{:deps {}}
+{:aliases {:carve {:extra-deps {io.github.borkdude/carve
+                                {:git/sha
+                                 "fdd1d0bc432f63db69e3a72167ef5e46f10dfba7",
+                                 :git/url "https://github.com/borkdude/carve"}},
+                   :main-opts ["-m" "carve.main"]},
+           :format/zprint {:extra-deps {zprint/zprint {:mvn/version "1.3.0"}},
+                           :main-opts ["-m" "zprint.main" "{:style :community}"
+                                       "--list-formatted-summary-check"]},
+           :format/zprint! {:extra-deps {zprint/zprint {:mvn/version "1.3.0"}},
+                            :main-opts ["-m" "zprint.main" "{:style :community}"
+                                        "--list-formatted-summary-write"]}},
+ :deps {}}
