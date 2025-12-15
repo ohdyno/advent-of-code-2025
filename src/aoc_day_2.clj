@@ -3,7 +3,7 @@
             [clojure.string :as str]))
 
 (defprotocol InvalidIdGenerator
-  (generate-invalid-ids [this]
+  (generate-invalid-ids [this is-invalid]
    "Generate invalid ids"))
 
 (defn- calculate-digits [id] (count id))
@@ -21,13 +21,13 @@
         remainder (subs id divisor)]
     (= quotient remainder)))
 
-(defn- is-invalid
+(defn- is-invalid-part-1
   [id]
   (and (has-even-digits id) (has-twice-repeated-sequence id)))
 
 (defrecord ProductIdRange [start end]
   InvalidIdGenerator
-    (generate-invalid-ids [_]
+    (generate-invalid-ids [_ is-invalid]
       (let [start-id (bigint start)
             end-id (bigint end)]
         (->> (range start-id (inc end-id))
@@ -44,9 +44,9 @@
                 (->ProductIdRange start end))))))
 
 (defn- process
-  [input-lines]
+  [input-lines is-invalid]
   (->> (parse-product-id-ranges input-lines)
-       (map generate-invalid-ids)
+       (map #(generate-invalid-ids % is-invalid))
        (flatten)
        (map bigint)
        (reduce +)))
@@ -59,5 +59,5 @@
 
 (with-open [rdr (io/reader (io/resource "input-day-2.txt"))]
   (let [input-lines (line-seq rdr)
-        part-1 (time (process input-lines))]
+        part-1 (time (process input-lines is-invalid-part-1))]
     (assert (= 9188031749N part-1) part-1)))
