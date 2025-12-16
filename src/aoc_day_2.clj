@@ -25,7 +25,7 @@
   [id]
   (and (has-even-digits id) (has-twice-repeated-sequence id)))
 
-(defn- is-invalid-part-2
+(defn is-invalid-part-2
   ([id]
    (loop [length 1
           max-length (quot (count id) 2)
@@ -53,7 +53,7 @@
               (let [[_ start end] (re-matches #"(\d+)-(\d+)" id-range)]
                 (->ProductIdRange start end))))))
 
-(defn- process
+(defn process
   [input-lines is-invalid]
   (->> (parse-product-id-ranges input-lines)
        (map #(generate-invalid-ids % is-invalid))
