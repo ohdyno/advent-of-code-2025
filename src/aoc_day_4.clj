@@ -16,29 +16,28 @@
           (update m is-role #(if (nil? %1) #{[row col]} (conj %1 [row col]))))
         {})))
 
-(defn count-neighbors
-  [rows cols rolls]
-  (let [rolls-set (set rolls)]
-    (->> rolls
-         (map (fn [[r c]]
-                (->> (combo/cartesian-product (range (dec r) (+ r 2))
-                                              (range (dec c) (+ c 2)))
-                     (filter (fn [[r' c']] (not (and (= r r') (= c c')))))
-                     (filter (fn [[r c]]
-                               (and (<= 0 r (dec rows))
-                                    (<= 0 c (dec cols))))))))
-         (map frequencies)
-         (reduce (partial merge-with +))
-         (filter #(rolls-set (first %))))))
+(defn generate-adjacent
+  [r c rows cols]
+  (->> (combo/cartesian-product (range (dec r) (+ r 2)) (range (dec c) (+ c 2)))
+       (filter (fn [[r' c']] (not (and (= r r') (= c c')))))
+       (filter (fn [[r' c']]
+                 (and (<= 0 r') (< r' rows) (<= 0 c') (< c' cols))))))
 
-(let [input-lines [".@@" "@.@" "@@@"]
+(defn count-adjacent
+  [rows cols rolls]
+  (->> rolls
+       (map (fn [[r c :as cell]]
+              (let [adjacent-cells (generate-adjacent r c rows cols)]
+                {cell (count (filter rolls adjacent-cells))})))))
+
+(let [input-lines ["@@" "@@"]
       cataloged (catalog input-lines)
       rows (count input-lines)
       cols (count (first input-lines))]
   (->> (:roll cataloged)
-       (count-neighbors rows cols)
-       (filter #(< (second %) 4))
-       (count)))
+       (count-adjacent rows cols)
+       (map #(first (vals %)))
+       (filter #(< %1 4))))
 
 (defn process
   [input-lines]
@@ -46,21 +45,20 @@
         rows (count input-lines)
         cols (count (first input-lines))]
     (->> (:roll cataloged)
-         (count-neighbors rows cols)
-         (filter #(< (second %) 4))
+         (count-adjacent rows cols)
+         (map #(first (vals %)))
+         (filter #(< %1 4))
          (count))))
 
 (def example
   ["..@@.@@@@." "@@@.@.@.@@" "@@@@@.@.@@" "@.@@@@..@." "@@.@@@@.@@" ".@@@@@@@.@"
    ".@.@.@.@@@" "@.@@@.@@@@" ".@@@@@@@@." "@.@.@@@.@."])
 
-(time (process example))
-
-(assert (= 13 (process example)))
+(assert (= 13 (time (process example))))
 
 (comment
   (with-open [rdr (io/reader (io/resource "input-day-4.txt"))]
     (let [input-lines (line-seq rdr)
           part-1 (time (process (vec input-lines)))
           part-2 nil]
-      (assert (= 1512 part-1) part-1))))
+      (assert (= 1516 part-1) part-1))))
