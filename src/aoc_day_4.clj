@@ -3,20 +3,18 @@
             [clojure.math.combinatorics :as combo]))
 
 (defn catalog
-  [input-lines]
-  (reduce (fn [m {row :row, col :col, is-role :is-roll}]
-            (update m is-role #(if (nil? %1) #{[row col]} (conj %1 [row col]))))
-          {}
-          (reduce into
-                  (map-indexed (fn [row-number row]
-                                 (map-indexed (fn [column-number c]
-                                                {:row row-number,
-                                                 :col column-number,
-                                                 :is-roll (keyword (if (= c \@)
-                                                                     :roll
-                                                                     nil))})
-                                              row))
-                               input-lines))))
+  [grid]
+  (->> grid
+       (map-indexed (fn [row-number row]
+                      (map-indexed #(hash-map :row row-number
+                                              :col %1
+                                              :is-roll (if (= %2 \@) :roll nil))
+                                   row)))
+       (reduce into)
+       (reduce
+        (fn [m {row :row, col :col, is-role :is-roll}]
+          (update m is-role #(if (nil? %1) #{[row col]} (conj %1 [row col]))))
+        {})))
 
 (defn count-neighbors
   [rows cols rolls]
