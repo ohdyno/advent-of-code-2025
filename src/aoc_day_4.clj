@@ -4,17 +4,12 @@
 
 (defn catalog
   [grid]
-  (->> grid
-       (map-indexed (fn [row-number row]
-                      (map-indexed #(hash-map :row row-number
-                                              :col %1
-                                              :is-roll (if (= %2 \@) :roll nil))
-                                   row)))
-       (reduce into)
-       (reduce
-        (fn [m {row :row, col :col, is-role :is-roll}]
-          (update m is-role #(if (nil? %1) #{[row col]} (conj %1 [row col]))))
-        {})))
+  (->> (for [[row-number row] (map-indexed vector grid)
+             [col-number c] (map-indexed vector row)]
+         {:row row-number, :col col-number, :is-roll (if (= c \@) :roll nil)})
+       (group-by :is-roll)
+       (:roll)
+       (reduce (fn [s {r :row, c :col}] (conj s [r c])) #{})))
 
 (defn generate-adjacent
   [r c rows cols]
@@ -34,7 +29,7 @@
       cataloged (catalog input-lines)
       rows (count input-lines)
       cols (count (first input-lines))]
-  (->> (:roll cataloged)
+  (->> cataloged
        (count-adjacent rows cols)
        (map #(first (vals %)))
        (filter #(< %1 4))))
@@ -44,7 +39,7 @@
   (let [cataloged (catalog input-lines)
         rows (count input-lines)
         cols (count (first input-lines))]
-    (->> (:roll cataloged)
+    (->> cataloged
          (count-adjacent rows cols)
          (map #(first (vals %)))
          (filter #(< %1 4))
@@ -54,7 +49,9 @@
   ["..@@.@@@@." "@@@.@.@.@@" "@@@@@.@.@@" "@.@@@@..@." "@@.@@@@.@@" ".@@@@@@@.@"
    ".@.@.@.@@@" "@.@@@.@@@@" ".@@@@@@@@." "@.@.@@@.@."])
 
-(assert (= 13 (time (process example))))
+(let [result (time (process example))]
+  (assert (= 13 result))
+  result)
 
 (comment
   (with-open [rdr (io/reader (io/resource "input-day-4.txt"))]
