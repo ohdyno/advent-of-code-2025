@@ -15,8 +15,9 @@
 
 (defn calculate-beam-splits
   [beams splits]
-  (->> (mapcat #(vector (dec %) (inc %)) splits)
-       (into (set/difference beams splits))))
+  (let [beams-passed-through (set/difference beams splits)
+        split-beams (mapcat #(vector (dec %) (inc %)) splits)]
+    (into beams-passed-through split-beams)))
 
 (defn process
   [input-lines]
