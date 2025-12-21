@@ -5,4 +5,4 @@
 printf "%s\n" "Removing unused vars..."
 clj -M:carve --paths src --interactive false &&
 printf "%s\n" "Formatting fils..."
-clj -M:format/zprint! src/*.clj deps.edn
+clj -M:format/zprint! src/**/*.clj deps.edn
