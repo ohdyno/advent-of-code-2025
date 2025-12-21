@@ -21,16 +21,15 @@
 
 (defn process
   [input-lines]
-  (let [beam (locate-beam (first input-lines))
-        manifolds (drop 1 input-lines)]
-    (loop [beams #{beam}
-           [splitters & remaining] (map locate-splitters manifolds)
-           split-count 0]
-      (if (nil? splitters)
-        split-count
-        (let [splits (set/intersection beams splitters)
-              beam-splits (calculate-beam-splits beams splits)]
-          (recur beam-splits remaining (+ (count splits) split-count)))))))
+  (let [[beam-line & manifolds] input-lines
+        beam (locate-beam beam-line)]
+    (->> (map locate-splitters manifolds)
+         (reduce (fn [[beams split-count] splitters]
+                   (let [splits (set/intersection beams splitters)]
+                     [(calculate-beam-splits beams splits)
+                      (+ (count splits) split-count)]))
+                 [#{beam} 0])
+         second)))
 
 (defn process-2 [input-lines])
 
