@@ -16,6 +16,17 @@
          (map second)
          (reduce +))))
 
+(let
+  [input-lines
+   (map
+    str/trim
+    (str/split-lines
+     "123 328 51  64
+      45  64  387 23
+      6   98  215 314
+      *   +   *   +"))]
+  (assert (test/is (= 4277556N (process input-lines)))))
+
 (with-open [rdr (io/reader (io/resource "day6/input.txt"))]
   (let [input-lines (line-seq rdr)
         part-1 (time (process input-lines))
