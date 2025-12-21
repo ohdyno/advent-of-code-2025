@@ -1,4 +1,4 @@
-(ns aoc-day-5
+(ns day5.aoc
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.test :as test]))
@@ -73,7 +73,7 @@
 
 (let [result (process example)] (assert (test/is (= 3 result))))
 
-(with-open [rdr (io/reader (io/resource "input-day-5.txt"))]
+(with-open [rdr (io/reader (io/resource "day5/input.txt"))]
   (let [input-lines (line-seq rdr)
         part-1 (time (process input-lines))
         part-2 (time (process-part-2 input-lines))]

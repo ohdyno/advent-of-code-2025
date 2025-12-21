@@ -1,4 +1,4 @@
-(ns aoc-day-1
+(ns day1.aco
   (:require [clojure.java.io :as io]))
 (comment
   (remove-ns 'aoc-day-1))
@@ -66,7 +66,7 @@
                     :dial-end (:dial-end result)}))
                {:zero-counts 0, :dial-end dial-start})))
 
-(with-open [rdr (io/reader (io/resource "input-day-1.txt"))]
+(with-open [rdr (io/reader (io/resource "day1/input.txt"))]
   (let [input-lines (line-seq rdr)
         part-1 (time (process 50 calculate-zero-count-part1 input-lines))
         part-2 (time (process 50 calculate-zero-count-part2 input-lines))]

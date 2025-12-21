@@ -1,4 +1,4 @@
-(ns aoc-day-4
+(ns day4.aoc
   (:require [clojure.java.io :as io]
             [clojure.math.combinatorics :as combo]))
 
@@ -57,13 +57,11 @@
   ["..@@.@@@@." "@@@.@.@.@@" "@@@@@.@.@@" "@.@@@@..@." "@@.@@@@.@@" ".@@@@@@@.@"
    ".@.@.@.@@@" "@.@@@.@@@@" ".@@@@@@@@." "@.@.@@@.@."])
 
-(let [result (time (process example :once))]
-  (assert (= 13 result))
-  result)
+(let [result (time (process example :once))] (assert (= 13 result) result))
 
 (let [result (time (process example :repeat))] (assert (= 43 result) result))
 
-(with-open [rdr (io/reader (io/resource "input-day-4.txt"))]
+(with-open [rdr (io/reader (io/resource "day4/input.txt"))]
   (let [input-lines (line-seq rdr)
         part-1 (time (process (vec input-lines) :once))
         part-2 (time (process (vec input-lines) :repeat))]

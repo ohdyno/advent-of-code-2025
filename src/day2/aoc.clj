@@ -1,4 +1,4 @@
-(ns aoc-day-2
+(ns day2.aoc
   (:require [clojure.java.io :as io]
             [clojure.string :as str]))
 
@@ -70,7 +70,7 @@
 (let [result (process [example] is-invalid-part-2)]
   (assert (= 4174379265N result) result))
 
-(with-open [rdr (io/reader (io/resource "input-day-2.txt"))]
+(with-open [rdr (io/reader (io/resource "day2/input.txt"))]
   (let [input-lines (line-seq rdr)
         part-1 (time (process input-lines is-invalid-part-1))
         part-2 (time (process input-lines is-invalid-part-2))]
