@@ -23,6 +23,35 @@
          (filter true?)
          (count))))
 
+(defn overlaps?
+  [range-window id-range]
+  (>= (second range-window) (first id-range)))
+
+(defn merge-range
+  [range-window id-range]
+  [(first range-window) (max (second range-window) (second id-range))])
+
+(defn merge-overlapping
+  [fresh-sorted]
+  (loop [range-window (first fresh-sorted)
+         non-overlapping []
+         [id-range & remaining] (rest fresh-sorted)]
+    (if (nil? id-range)
+      (conj non-overlapping range-window)
+      (let [[range-window' non-overlapping']
+            (if (overlaps? range-window id-range)
+              [(merge-range range-window id-range) non-overlapping]
+              [id-range (conj non-overlapping range-window)])]
+        (recur range-window' non-overlapping' remaining)))))
+
+(defn process-part-2
+  [input-lines]
+  (let [{fresh :fresh-id-range} (parse-inventory input-lines)
+        fresh-sorted (sort-by (juxt first) fresh)]
+    (reduce +
+            (map (fn [[lower upper]] (- (inc upper) lower))
+                 (merge-overlapping fresh-sorted)))))
+
 (def example
   (map
    str/trim
@@ -40,11 +69,13 @@
         17
         32")))
 
-(process example)
+(let [result (process-part-2 example)] (assert (test/is (= 14 result))))
 
 (let [result (process example)] (assert (test/is (= 3 result))))
 
 (with-open [rdr (io/reader (io/resource "input-day-5.txt"))]
   (let [input-lines (line-seq rdr)
-        part-1 (time (process input-lines))]
-    (assert (test/is (= 707 part-1)))))
+        part-1 (time (process input-lines))
+        part-2 (time (process-part-2 input-lines))]
+    (assert (test/is (= 707 part-1)))
+    (assert (test/is (= 361615643045059N part-2)))))
