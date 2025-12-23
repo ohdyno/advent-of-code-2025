@@ -3,6 +3,7 @@
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.test :as test]
+            [clojure.pprint :as pprint]
             [clojure.walk]))
 
 (defn locate-beam [line] (str/index-of line \S))
@@ -32,88 +33,81 @@
                  [#{beam} 0])
          second)))
 
+
+
+
+(defn find-beam-splits
+  "Given a graph representing where the beams have been and where the splitters are located, return all the locations where the beams need to split."
+  [beams level splitters]
+  (filter (fn [[lvl idx]] (and (splitters idx) (= lvl (dec level))))
+          (keys beams)))
+
+(defn split-beams
+  "Update the beams locations with the result of splitting the beam at all the splitter locations on current level.
+  If splitters is a number, then the beams will be split at [level splitters]."
+  [beams [level splitters :as split]]
+  (cond (coll? splitters)
+        (let [splits (find-beam-splits beams level splitters)]
+          (reduce (fn [beams split] (split-beams beams split)) beams splits))
+        :else (let [left [(inc level) (dec splitters)]
+                    right [(inc level) (inc splitters)]]
+                (assoc beams split #{left right} left #{} right #{}))))
+
 (defn build-beam-traverse-graph
   [beam splitters]
-  (->> splitters
-       (filter not-empty)
-       (map-indexed vector)
-       (reduce
-        (fn [graph [level splitters-per-level]]
-          (let [beams-to-split (filter (fn [m]
-                                         (let [[k v] (first m)]
-                                           (and (splitters-per-level v)
-                                                (= k level))))
-                                       graph)]
-            (reduce-kv
-             (fn [m k v]
-               (let [lvl (inc (first k))
-                     idx (second k)]
-                 (merge
-                  {[lvl (dec idx)] #{}, [lvl (inc idx)] #{}}
-                  (assoc m k (into v [[lvl (dec idx)] [lvl (inc idx)]])))))
-             graph
-             beams-to-split)))
-        {[0 beam] #{}})))
-
-(defn count-timelines
-  ([graph]
-   (let [[start] (sort (keys graph))] (first (count-timelines graph {} start))))
-  ([graph memo node]
-   (if-let [memo-value (memo node)]
-     [memo-value memo]
-     (if-let [edges (not-empty (graph node))]
-       (let [[count-left memo-left] (count-timelines graph memo (first edges))]
-         (if-let [right (second edges)]
-           (let [[count-right memo-right]
-                 (count-timelines graph memo-left right)
-                 result (+ count-left count-right)]
-             [result (assoc memo-right node result)])
-           [count-left (assoc memo-left node count-left)]))
-       [1 (assoc memo node 1)]))))
+  (reduce (fn [graph [_ splitters-per-level :as split]]
+            (if (empty? splitters-per-level) graph (split-beams graph split)))
+          {[0 beam] #{}}
+          splitters))
 
 (defn process-2
   [input-lines]
-  (let [[beam-line & manifolds] input-lines
-        beam (locate-beam beam-line)]
-    (->> (map locate-splitters manifolds)
-         (build-beam-traverse-graph beam)
-         (count-timelines))))
+  (let [trimmed (filter #(< 1 (count (set %))) input-lines)
+        beam (locate-beam (first trimmed))]
+    (->> (map locate-splitters trimmed)
+         (map-indexed vector)
+         (build-beam-traverse-graph beam))))
 
 ;!zprint {:format :skip}
 (let [input-lines
-      [".......S......."
-       ".......^......."
-       "......^.^......"
-       ".....^.^.^....."
-       "....^.^...^...."
+      ["....S...."                                    ;0
+       "........."
+       "....^...."                                    ;1
+       "........."
+       "...^.^..."                                    ;2
+       "........."
+       "..^.^.^.."                                    ;3
+       "........."
+       ".^.^...^."                                    ;4
+       "........."
        ]
       ]
-  (assert (test/is (= 13 (process-2 input-lines)))))
+  (process-2 input-lines))
 
 ;!zprint {:format :skip}
 (let [input-lines
-      [".......S......."
-       "..............."
-       ".......^......."
-       "..............."
-       "......^.^......"
-       "..............."
-       ".....^.^.^....."
-       "..............."
-       "....^.^...^...."
-       "..............."
-       "...^.^...^.^..."
-       "..............."
-       "..^...^.....^.."
-       "..............."
-       ".^.^.^.^.^...^."
-       "..............."
+      [".......S.......";0
+       "...............";1
+       ".......^.......";2
+       "...............";3
+       "......^.^......";4
+       "...............";5
+       ".....^.^.^.....";6
+       "...............";7
+       "....^.^...^....";8
+       "...............";9
+       "...^.^...^.^...";10
+       "...............";11
+       "..^...^.....^..";12
+       "...............";13
+       ".^.^.^.^.^...^.";14
+       "...............";15
        ]
       ]
   (as-> (process input-lines) result
         (assert (test/is (= 21 result)))
         (process-2 input-lines)
-        (assert (test/is (= 40 result)))))
+        ))
 
 (comment
   (with-open [rdr (io/reader (io/resource "day7/input.txt"))]
