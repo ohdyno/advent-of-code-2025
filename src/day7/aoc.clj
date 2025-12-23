@@ -3,7 +3,6 @@
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.test :as test]
-            [clojure.pprint :as pprint]
             [clojure.walk]))
 
 (defn locate-beam [line] (str/index-of line \S))
@@ -35,21 +34,26 @@
 
 (defn start-beam [line] (map #(if (= \S %) 1 0) line))
 
+(defn calculate-path-count
+  [lookup line]
+  (reduce-kv (fn [m idx c]
+               (let [current-path-count (lookup idx)]
+                 (if (= c \.)
+                   (assoc m idx (+ (m idx 0) current-path-count))
+                   (assoc m
+                          (dec idx)
+                          (+ (m (dec idx)) current-path-count)
+                          idx
+                          0
+                          (inc idx)
+                          current-path-count))))
+             {}
+             line))
+
 (defn split-beams'
   [beams line]
   (let [lookup (into {} (map-indexed vector beams))]
-    (->> (vec line)
-         (reduce-kv (fn [m idx c]
-                      (if (= c \.)
-                        (assoc m idx (+ (m idx 0) (lookup idx)))
-                        (assoc m
-                               (dec idx)
-                               (+ (m (dec idx)) (lookup idx))
-                               idx
-                               0
-                               (inc idx)
-                               (lookup idx))))
-                    {})
+    (->> (calculate-path-count lookup line)
          (sort-by first)
          (reduce (fn [acc [_ v]] (conj acc v)) []))))
 
@@ -62,14 +66,13 @@
 (assert (test/is (= [0 1 0 3 0 2 0]
                     (split-beams' [0 0 1 0 2 0 0] (vec "..^.^..")))))
 
-(defn trace-beams
-  [beams line]
-  (if (empty? beams) (start-beam line) (split-beams' (last beams) line)))
+(defn trace-beams [beams line] (split-beams' beams line))
 
 (defn process-2
   [input-lines]
-  (->> input-lines
-       (reduce (fn [beams line] [(trace-beams beams line)]) [])
+  (->> (rest input-lines)
+       (reduce (fn [beams line] (trace-beams beams (vec line)))
+               (start-beam (first input-lines)))
        (flatten)
        (reduce +)))
 
@@ -87,7 +90,7 @@
        "........."
        ]
       ]
-  (process-2 input-lines))
+  (assert (test/is (= 13 (process-2 input-lines)))))
 
 ;!zprint {:format :skip}
 (let [input-lines
@@ -114,6 +117,7 @@
         (process-2 input-lines)
         (assert (test/is (= 40 result)))))
 
-(comment
-  (with-open [rdr (io/reader (io/resource "day7/input.txt"))]
-    (let [input-lines (line-seq rdr)] (time (process-2 input-lines)))))
+(with-open [rdr (io/reader (io/resource "day7/input.txt"))]
+  (let [input-lines (line-seq rdr)]
+    (assert (test/is (= 1678 (time (process input-lines)))))
+    (assert (test/is (= 357525737893560N (time (process-2 input-lines)))))))
