@@ -33,40 +33,45 @@
                  [#{beam} 0])
          second)))
 
+(defn start-beam [line] (map #(if (= \S %) 1 0) line))
 
+(defn split-beams'
+  [beams line]
+  (let [lookup (into {} (map-indexed vector beams))]
+    (->> (vec line)
+         (reduce-kv (fn [m idx c]
+                      (if (= c \.)
+                        (assoc m idx (+ (m idx 0) (lookup idx)))
+                        (assoc m
+                               (dec idx)
+                               (+ (m (dec idx)) (lookup idx))
+                               idx
+                               0
+                               (inc idx)
+                               (lookup idx))))
+                    {})
+         (sort-by first)
+         (reduce (fn [acc [_ v]] (conj acc v)) []))))
 
+(assert (test/is (= [1] (split-beams' [1] (vec ".")))))
+(assert (test/is (= [1 0 1] (split-beams' [0 1 0] (vec ".^.")))))
+(assert (test/is (= [2 0 1] (split-beams' [1 1 0] (vec ".^.")))))
+(assert (test/is (= [1 0 2] (split-beams' [0 1 1] (vec ".^.")))))
+(assert (test/is (= [0 1 0 2 0 1 0]
+                    (split-beams' [0 0 1 0 1 0 0] (vec "..^.^..")))))
+(assert (test/is (= [0 1 0 3 0 2 0]
+                    (split-beams' [0 0 1 0 2 0 0] (vec "..^.^..")))))
 
-(defn find-beam-splits
-  "Given a graph representing where the beams have been and where the splitters are located, return all the locations where the beams need to split."
-  [beams level splitters]
-  (filter (fn [[lvl idx]] (and (splitters idx) (= lvl (dec level))))
-          (keys beams)))
-
-(defn split-beams
-  "Update the beams locations with the result of splitting the beam at all the splitter locations on current level.
-  If splitters is a number, then the beams will be split at [level splitters]."
-  [beams [level splitters :as split]]
-  (cond (coll? splitters)
-        (let [splits (find-beam-splits beams level splitters)]
-          (reduce (fn [beams split] (split-beams beams split)) beams splits))
-        :else (let [left [(inc level) (dec splitters)]
-                    right [(inc level) (inc splitters)]]
-                (assoc beams split #{left right} left #{} right #{}))))
-
-(defn build-beam-traverse-graph
-  [beam splitters]
-  (reduce (fn [graph [_ splitters-per-level :as split]]
-            (if (empty? splitters-per-level) graph (split-beams graph split)))
-          {[0 beam] #{}}
-          splitters))
+(defn trace-beams
+  [beams line]
+  (if (empty? beams) (start-beam line) (split-beams' (last beams) line)))
 
 (defn process-2
   [input-lines]
-  (let [trimmed (filter #(< 1 (count (set %))) input-lines)
-        beam (locate-beam (first trimmed))]
-    (->> (map locate-splitters trimmed)
-         (map-indexed vector)
-         (build-beam-traverse-graph beam))))
+  (->> input-lines
+       (reduce (fn [beams line] [(trace-beams beams line)]) [])
+       (flatten)
+       (reduce +)))
 
 ;!zprint {:format :skip}
 (let [input-lines
@@ -87,27 +92,27 @@
 ;!zprint {:format :skip}
 (let [input-lines
       [".......S.......";0
-       "...............";1
-       ".......^.......";2
-       "...............";3
-       "......^.^......";4
-       "...............";5
-       ".....^.^.^.....";6
-       "...............";7
-       "....^.^...^....";8
-       "...............";9
-       "...^.^...^.^...";10
-       "...............";11
-       "..^...^.....^..";12
-       "...............";13
-       ".^.^.^.^.^...^.";14
-       "...............";15
+       "..............."
+       ".......^.......";1
+       "..............."
+       "......^.^......";2
+       "..............."
+       ".....^.^.^.....";3
+       "..............."
+       "....^.^...^....";4
+       "..............."
+       "...^.^...^.^...";5
+       "..............."
+       "..^...^.....^..";6
+       "..............."
+       ".^.^.^.^.^...^.";7
+       "..............."
        ]
       ]
   (as-> (process input-lines) result
         (assert (test/is (= 21 result)))
         (process-2 input-lines)
-        ))
+        (assert (test/is (= 40 result)))))
 
 (comment
   (with-open [rdr (io/reader (io/resource "day7/input.txt"))]
