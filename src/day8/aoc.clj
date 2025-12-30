@@ -42,7 +42,7 @@
 (defn build-circuits
   [boxes-with-distances]
   (->> (sort-by second boxes-with-distances)
-       (take 10)
+       (take 1000)
        (map first)
        (reduce connect-to-circuits [])))
 
@@ -86,5 +86,5 @@
 (comment
   (with-open [rdr (io/reader (io/resource "day8/input.txt"))]
     (let [input-lines (line-seq rdr)]
-      (assert (test/is (= nil (time (process input-lines)))))
+      (assert (test/is (= 123234 (time (process input-lines)))))
       (assert (test/is (= nil (time (process-2 input-lines))))))))
