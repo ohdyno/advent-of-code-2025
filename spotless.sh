@@ -2,7 +2,7 @@
 
 # A primitive attempt to have very standardized codebase
 
-printf "%s\n" "Removing unused vars..."
-clj -M:carve --paths src --interactive false &&
-printf "%s\n" "Formatting fils..."
+#printf "%s\n" "Removing unused vars..."
+#clj -M:carve --paths src --interactive false &&
+#printf "%s\n" "Formatting files..."
 clj -M:format/zprint! src/**/*.clj deps.edn

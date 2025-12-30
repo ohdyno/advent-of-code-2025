@@ -1,8 +1,60 @@
 (ns day8.aoc
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojure.test :as test]))
 
-(defn process [input-lines])
+(defn parse-junction-boxes
+  [input-lines]
+  (map (fn [coords]
+         (let [[x y z] (str/split coords #",")]
+           {:x (Double/parseDouble x),
+            :y (Double/parseDouble y),
+            :z (Double/parseDouble z)}))
+       input-lines))
+
+(defn calculate-distance
+  [p q]
+  (let [xs (Math/pow (- (:x p) (:x q)) 2)
+        ys (Math/pow (- (:y p) (:y q)) 2)
+        zs (Math/pow (- (:z p) (:z q)) 2)]
+    (Math/sqrt (+ xs ys zs))))
+
+(defn calculate-distances
+  [junction-boxes]
+  (->> (for [p junction-boxes q junction-boxes :when (not= p q)] [p q])
+       (reduce (fn [m [p q :as pair]]
+                 (let [key (sort-by (juxt :x :y :z) pair)
+                       distance (calculate-distance p q)]
+                   (assoc m key distance)))
+               {})))
+
+(defn connect-to-circuits
+  [circuits [p q]]
+  (let [contains-p-or-q? (group-by (fn [circuit]
+                                     (or (contains? circuit p)
+                                         (contains? circuit q)))
+                                   circuits)
+        contains-pq (contains-p-or-q? true)
+        does-not-contain-pq (contains-p-or-q? false)
+        pq-circuit (conj (reduce #(into %1 %2) #{} contains-pq) p q)]
+    (conj does-not-contain-pq pq-circuit)))
+
+(defn build-circuits
+  [boxes-with-distances]
+  (->> (sort-by second boxes-with-distances)
+       (take 10)
+       (map first)
+       (reduce connect-to-circuits [])))
+
+(defn process
+  [input-lines]
+  (->> (parse-junction-boxes input-lines)
+       (calculate-distances)
+       (build-circuits)
+       (map count)
+       (sort >)
+       (take 3)
+       (reduce *)))
 
 ;!zprint {:format :skip}
 (let [input-lines
@@ -31,7 +83,8 @@
 
 (defn process-2 [input-lines])
 
-(with-open [rdr (io/reader (io/resource "day8/input.txt"))]
-  (let [input-lines (line-seq rdr)]
-    (assert (test/is (= nil (time (process input-lines)))))
-    (assert (test/is (= nil (time (process-2 input-lines)))))))
+(comment
+  (with-open [rdr (io/reader (io/resource "day8/input.txt"))]
+    (let [input-lines (line-seq rdr)]
+      (assert (test/is (= nil (time (process input-lines)))))
+      (assert (test/is (= nil (time (process-2 input-lines))))))))
