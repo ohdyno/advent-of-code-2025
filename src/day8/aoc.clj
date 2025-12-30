@@ -40,25 +40,56 @@
     (conj does-not-contain-pq pq-circuit)))
 
 (defn build-circuits
-  [boxes-with-distances]
+  [n-connections boxes-with-distances]
   (->> (sort-by second boxes-with-distances)
-       (take 1000)
+       (take n-connections)
        (map first)
        (reduce connect-to-circuits [])))
 
 (defn process
-  [input-lines]
+  [input-lines n-connections]
   (->> (parse-junction-boxes input-lines)
        (calculate-distances)
-       (build-circuits)
+       (build-circuits n-connections)
        (map count)
        (sort >)
        (take 3)
        (reduce *)))
 
+(defn find-pair-that-completes-circuit
+  [total-boxes boxes]
+  (loop [circuits []
+         [[p q :as box] & remaining-boxes] boxes]
+    (if (nil? box)
+      (println "What happened here?")
+      (let [contains-p-or-q? (group-by (fn [circuit]
+                                         (or (contains? circuit p)
+                                             (contains? circuit q)))
+                                       circuits)
+            contains-pq (contains-p-or-q? true)
+            does-not-contain-pq (contains-p-or-q? false)
+            updated-circuit (conj (reduce #(into %1 %2) #{} contains-pq) p q)]
+        (if (= total-boxes (count updated-circuit))
+          [p q]
+          (recur (conj does-not-contain-pq updated-circuit)
+                 remaining-boxes))))))
+
+(defn build-full-circuit
+  [total-boxes boxes-with-distances]
+  (->> (sort-by second boxes-with-distances)
+       (map first)
+       (find-pair-that-completes-circuit total-boxes)))
+
+(defn process-2
+  [input-lines]
+  (->> (parse-junction-boxes input-lines)
+       (calculate-distances)
+       (build-full-circuit (count input-lines))
+       (map :x)
+       (reduce *)
+       (int)))
+
 ;!zprint {:format :skip}
-(defn process-2 [input-lines])
-
 (let [input-lines
       ["162,817,812"
        "57,618,57"
@@ -81,34 +112,17 @@
        "984,92,344"
        "425,690,689"]
       ]
-  (assert (test/is (= 40 (process input-lines)))))
+  (assert (test/is (= 40 (process input-lines 10)))))
 
-(let [input-lines
-      ["162,817,812"
-       "57,618,57"
-       "906,360,560"
-       "592,479,940"
-       "352,342,300"
-       "466,668,158"
-       "542,29,236"
-       "431,825,988"
-       "739,650,466"
-       "52,470,668"
-       "216,146,977"
-       "819,987,18"
-       "117,168,530"
-       "805,96,715"
-       "346,949,466"
-       "970,615,88"
-       "941,993,340"
-       "862,61,35"
-       "984,92,344"
-       "425,690,689"]
-      ]
+(let [input-lines ["162,817,812" "57,618,57" "906,360,560" "592,479,940"
+                   "352,342,300" "466,668,158" "542,29,236" "431,825,988"
+                   "739,650,466" "52,470,668" "216,146,977" "819,987,18"
+                   "117,168,530" "805,96,715" "346,949,466" "970,615,88"
+                   "941,993,340" "862,61,35" "984,92,344" "425,690,689"]]
   (assert (test/is (= 25272 (process-2 input-lines)))))
 
 (comment
   (with-open [rdr (io/reader (io/resource "day8/input.txt"))]
     (let [input-lines (line-seq rdr)]
-      (assert (test/is (= 123234 (time (process input-lines)))))
+      (assert (test/is (= 123234 (time (process input-lines 1000)))))
       (assert (test/is (= nil (time (process-2 input-lines))))))))
