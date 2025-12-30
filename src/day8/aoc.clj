@@ -87,7 +87,7 @@
        (build-full-circuit (count input-lines))
        (map :x)
        (reduce *)
-       (int)))
+       (bigint)))
 
 ;!zprint {:format :skip}
 (let [input-lines
@@ -125,4 +125,4 @@
   (with-open [rdr (io/reader (io/resource "day8/input.txt"))]
     (let [input-lines (line-seq rdr)]
       (assert (test/is (= 123234 (time (process input-lines 1000)))))
-      (assert (test/is (= nil (time (process-2 input-lines))))))))
+      (assert (test/is (= 9259958565N (time (process-2 input-lines))))))))
