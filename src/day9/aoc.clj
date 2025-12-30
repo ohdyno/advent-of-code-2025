@@ -1,8 +1,26 @@
 (ns day9.aoc
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojure.test :as test]))
 
-(defn process [input-lines])
+(defn parse-tiles [input-lines]
+  (map (fn [tile] (let [[x y] (str/split tile #",")]
+                    {:x (Integer/parseInt x) :y (Integer/parseInt y)}
+    )) input-lines)
+  )
+
+(defn calculate-areas [red-tiles]
+  (for [a red-tiles b red-tiles
+        :let [width (inc (Math/abs (double (- (:x a) (:x b)))))
+              height (inc (Math/abs (double (- (:y a) (:y b)))))]]
+    (bigint (* width height))))
+
+(defn process [input-lines]
+  (->> (parse-tiles input-lines)
+       (calculate-areas)
+       (sort >)
+       (first)))
+
 (defn process-2 [input-lines])
 
 ;!zprint {:format :skip}
@@ -20,5 +38,5 @@
 
 (with-open [rdr (io/reader (io/resource "day9/input.txt"))]
   (let [input-lines (line-seq rdr)]
-    (assert (test/is (= nil (time (process input-lines)))))
+    (assert (test/is (= 4763040296N (time (process input-lines)))))
     (assert (test/is (= nil (time (process-2 input-lines)))))))
