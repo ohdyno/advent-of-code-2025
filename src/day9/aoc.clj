@@ -1,7 +1,9 @@
 (ns day9.aoc
   (:require [clojure.java.io :as io]
+            [clojure.set :as set]
             [clojure.string :as str]
-            [clojure.test :as test]))
+            [clojure.test :as test]
+            [clojure.pprint :as pprint]))
 
 (defn parse-tiles
   [input-lines]
@@ -26,67 +28,93 @@
        (first)
        (:area)))
 
+(defn is-vertical? [[a b]] (= (:x a) (:x b)))
+
 (defn define-polygon
   [tiles]
   (conj (partition 2 1 tiles) [(last tiles) (first tiles)]))
 
-(defn generate-coordinates
+(defn generate-boundary
+  [[a b]]
+  (->> (let [min-x (min (:x a) (:x b))
+             max-x (max (:x a) (:x b))
+             min-y (min (:y a) (:y b))
+             max-y (max (:y a) (:y b))]
+         [{:x min-x, :y min-y} {:x min-x, :y max-y} {:x max-x, :y max-y}
+          {:x max-x, :y min-y}])
+       (define-polygon)))
+
+(defn do-segments-intersect?
+  ([[[v1 v2] [h1 h2]]]
+   {:pre [(= (:x v1) (:x v2)) (= (:y h1) (:y h2))]}
+   (and (< (min (:x h1) (:x h2)) (:x v1) (max (:x h1) (:x h2)))
+        (< (min (:y v1) (:y v2)) (:y h1) (max (:y v1) (:y v2)))))
+  ([verticals horizontals]
+   (->> (for [v verticals h horizontals] [v h])
+        (some #(do-segments-intersect? %)))))
+
+(defn calculate-segment-tiles
   [[a b]]
   (for [x (range (min (:x a) (:x b)) (inc (max (:x a) (:x b))))
         y (range (min (:y a) (:y b)) (inc (max (:y a) (:y b))))]
     {:x x, :y y}))
 
-(defn does-ray-cross-segment?
-  "Return true if the ray starting at coordinate and going downwards crosses the segment defined by the points a and b."
-  [coordinate [a b]]
-  (->> (< (min (:x a) (:x b)) (:x coordinate) (max (:x a) (:x b)))
-       (and (< (:y coordinate) (max (:y a) (:y b))))))
+(defn calculate-boundary-tiles
+  [polygon]
+  (reduce #(into %1 (calculate-segment-tiles %2)) #{} polygon))
 
-(defn is-coordinate-within-polygon?
-  [coordinate polygon]
-  (->> (map #(does-ray-cross-segment? coordinate %) polygon)
-       (filter true?)
-       (count)
-       (odd?)))
+(defn calculate-neighbors
+  [{x :x, y :y}]
+  [{:x (dec x), :y (dec y)} {:x x, :y (dec y)} {:x (inc x), :y (dec y)}
+   {:x (dec x), :y y} {:x (inc x), :y y} {:x (dec x), :y (inc y)}
+   {:x x, :y (inc y)} {:x (inc x), :y (inc y)}])
 
-(defn is-vertical? [[a b]] (= (:x a) (:x b)))
+(assert (test/is (= #{{:x 0, :y 0} {:x 1, :y 0} {:x 2, :y 0} {:x 0, :y 1}
+                      {:x 2, :y 1} {:x 0, :y 2} {:x 1, :y 2} {:x 2, :y 2}}
+                    (set (calculate-neighbors {:x 1, :y 1})))))
 
-(defn is-coordinate-on-segment?
-  [coordinate [a b :as segment]]
-  (if (is-vertical? segment)
-    (and (= (:x coordinate) (:x a))
-         (<= (min (:y a) (:y b)) (:y coordinate) (max (:y a) (:y b))))
-    (and (= (:y coordinate) (:y a))
-         (<= (min (:x a) (:x b)) (:x coordinate) (max (:x a) (:x b))))))
+(defn boundary-fill
+  [boundary]
+  (loop [[coordinate & remaining] [(-> (sort-by (juxt :x :y) boundary)
+                                       (first)
+                                       (update-vals inc))]
+         inside #{}]
+    (if (nil? coordinate)
+      inside
+      (let [[coords insides]
+            (cond (inside coordinate) [remaining inside]
+                  (boundary coordinate) [remaining inside]
+                  :else [(into remaining (calculate-neighbors coordinate))
+                         (conj inside coordinate)])]
+        (recur coords insides)))))
 
-(defn is-coordinate-on-polygon?
-  [coordinate polygon]
-  (some #(is-coordinate-on-segment? coordinate %) polygon))
+(defn calculate-all-valid-tiles
+  [polygon]
+  (let [boundary (calculate-boundary-tiles polygon)
+        inside (boundary-fill boundary)]
+    (into inside boundary)))
 
-(defn is-coordinate-within-or-on-polygon?
-  [coordinate polygon]
-  (or (is-coordinate-on-polygon? coordinate polygon)
-      (is-coordinate-within-polygon? coordinate polygon)))
+(assert (test/is (empty? (set/difference
+                          (set (for [x [0 1 2 3] y [0 1 2 3]] {:x x, :y y}))
+                          (calculate-all-valid-tiles
+                           (define-polygon [{:x 0, :y 0} {:x 3, :y 0}
+                                            {:x 3, :y 3} {:x 0, :y 3}]))))))
 
-;!zprint {:format :skip}
-(defn is-rectangle-within-polygon
-  [rectangle polygon]
-  (->> (generate-coordinates (:corners rectangle))
-       (every? #(is-coordinate-within-or-on-polygon? % polygon))))
-
-(let [input-lines ["7,1" "11,1" "11,7" "9,7" "9,5" "2,5" "2,3" "7,3"]]
-  (let [tiles (parse-tiles input-lines)
-        polygon (define-polygon tiles)
-        all-rectangles (sort-by :area > (build-rectangles tiles))]
-    (is-coordinate-within-or-on-polygon? {:x 11, :y 1} polygon)))
+(defn rectangle-contains-valid-tiles?
+  [rectangle valid-tiles]
+  (->> (generate-boundary rectangle)
+       (calculate-boundary-tiles)
+       (set/superset? valid-tiles)))
 
 (defn process-2
   [input-lines]
   (let [tiles (parse-tiles input-lines)
         polygon (define-polygon tiles)
+        valid-tiles (calculate-all-valid-tiles polygon)
         all-rectangles (sort-by :area > (build-rectangles tiles))]
-    (-> (some #(if (is-rectangle-within-polygon % polygon) % nil)
-              all-rectangles)
+    (-> (some
+         #(if (rectangle-contains-valid-tiles? (:corners %) valid-tiles) % nil)
+         all-rectangles)
         (:area))))
 
 ;!zprint {:format :skip}
@@ -115,7 +143,8 @@
       ]
   (assert (test/is (= 24 (process-2 input-lines)))))
 
-(with-open [rdr (io/reader (io/resource "day9/input.txt"))]
-  (let [input-lines (line-seq rdr)]
-    (assert (test/is (= 4763040296N (time (process input-lines)))))
-    (assert (test/is (= nil (time (process-2 input-lines)))))))
+(comment
+  (with-open [rdr (io/reader (io/resource "day9/input.txt"))]
+    (let [input-lines (line-seq rdr)]
+      (assert (test/is (= 4763040296N (time (process input-lines)))))
+      (assert (test/is (= nil (time (process-2 input-lines))))))))
